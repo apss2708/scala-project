@@ -1,0 +1,21 @@
+# Build output
+target/
+project/target/
+project/project/
+.scala-build/
+.bsp/
+.bloop/
+.metals/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS / editor noise
+.DS_Store
+*.swp
+*.log
+
+# Compiled classes
+*.class
