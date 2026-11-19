@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SCALA Project — Interactive Terminal</title>
+  <meta name="description" content="An interactive terminal showcase for SCALA Project: a Scala 3 notification system with trait-based channels, case-class messages, custom exceptions, retries, and 17 MUnit tests.">
+  <meta name="theme-color" content="#060a11">
+  <meta property="og:title" content="SCALA Project — Interactive Terminal">
+  <meta property="og:description" content="Explore a Scala 3 notification system from a real terminal. Type `scala-cli test .` or `scala-cli run .`.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://apss2708.github.io/scala-project/">
+  <meta property="og:image" content="https://apss2708.github.io/scala-project/preview.png">
+  <meta property="og:image:alt" content="SCALA Project terminal showcase">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SCALA Project — Interactive Terminal">
+  <meta name="twitter:description" content="A Scala 3 notification system with trait-based channels, case-class messages, custom exceptions, and 17 tests.">
+  <meta name="twitter:image" content="https://apss2708.github.io/scala-project/preview.png">
+  <link rel="canonical" href="https://apss2708.github.io/scala-project/">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#terminal">Skip to terminal</a>
+
+  <div class="backdrop" aria-hidden="true">
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+    <div class="grid"></div>
+  </div>
+
+  <div class="page">
+    <header class="site-header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span>&gt;_</span></div>
+        <div class="brand-copy">
+          <p class="eyebrow"><span class="eyebrow-dot"></span>SCALA PROJECT · CASE STUDY</p>
+          <h1>SCALA Project<span class="accent">.</span></h1>
+          <p class="lede">A type-safe notification system in <strong>Scala 3</strong> — trait-based channels, immutable case-class messages, custom exceptions, and retries with typed results.</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-primary" id="run-showcase" type="button">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M4 2.4v11.2L13.2 8 4 2.4Z"/></svg>
+          <span>Run showcase</span>
+        </button>
+        <a class="btn btn-ghost" href="https://github.com/apss2708/scala-project" target="_blank" rel="noreferrer">
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          <span>View source</span>
+        </a>
+      </div>
+
+      <ul class="stats" aria-label="Project facts">
+        <li class="stat-status"><span class="status-dot"></span>17 tests passing</li>
+        <li>Scala <strong>3.9.0</strong></li>
+        <li>MUnit <strong>1.3.6</strong></li>
+        <li>sbt + Scala CLI</li>
+      </ul>
+    </header>
+
+    <main>
+      <section class="terminal-wrap" aria-label="Interactive project terminal">
+        <div class="terminal" id="terminal-window">
+          <div class="titlebar">
+            <div class="traffic" aria-hidden="true">
+              <span class="traffic-red"></span>
+              <span class="traffic-yellow"></span>
+              <span class="traffic-green"></span>
+            </div>
+            <div class="window-title">
+              <span class="title-long">ayush@AMBA — ~/scala-project — zsh</span>
+              <span class="title-short">~/scala-project</span>
+            </div>
+            <div class="window-actions">
+              <span class="live-badge" title="Outputs recorded from a real local run">
+                <span class="live-dot"></span><span class="live-text">recorded demo</span>
+              </span>
+              <button class="icon-btn" id="clear-terminal" type="button" title="Clear terminal" aria-label="Clear terminal">
+                <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M2.2 8a5.8 5.8 0 1 0 1.7-4.1L2.2 5.6"/><path d="M2 1.8v3.8h3.8"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="terminal-body" id="terminal">
+            <div class="terminal-output" id="output" role="log" aria-live="polite" aria-relevant="additions"></div>
+            <div class="input-line" id="input-line">
+              <span class="prompt" aria-hidden="true"><span class="prompt-user">ayush@AMBA</span> <span class="prompt-path">scala-project</span> <span class="prompt-pct">%</span></span>
+              <span class="input-wrap">
+                <input
+                  id="command-input"
+                  class="command-input"
+                  type="text"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  enterkeyhint="send"
+                  aria-label="Terminal command input"
+                >
+                <span class="cursor" id="cursor" aria-hidden="true"></span>
+              </span>
+            </div>
+          </div>
+
+          <div class="terminal-footer">
+            <div class="hints" id="terminal-hints">
+              <kbd>↑</kbd><kbd>↓</kbd> history <span class="hint-sep">·</span>
+              <kbd>Tab</kbd> complete <span class="hint-sep">·</span>
+              <kbd>Ctrl</kbd>+<kbd>L</kbd> clear
+            </div>
+            <div class="terminal-status"><span class="status-check">✓</span> 17 tests · 0 failures</div>
+          </div>
+        </div>
+
+        <div class="command-bar" aria-label="Suggested commands">
+          <span class="command-bar-label">Try a command</span>
+          <div class="chips">
+            <button class="chip" type="button" data-command="help"><span>$</span> help</button>
+            <button class="chip" type="button" data-command="scala-cli test ."><span>$</span> scala-cli test .</button>
+            <button class="chip" type="button" data-command="scala-cli run ."><span>$</span> scala-cli run .</button>
+            <button class="chip" type="button" data-command="tree"><span>$</span> tree</button>
+            <button class="chip" type="button" data-command="cat README.md"><span>$</span> cat README.md</button>
+            <button class="chip" type="button" data-command="github"><span>$</span> github</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="highlights" aria-label="Project highlights">
+        <article class="highlight">
+          <span class="highlight-num">01</span>
+          <h2>One trait, three channels</h2>
+          <p><code>EmailChannel</code>, <code>SmsChannel</code>, and <code>PushChannel</code> implement <code>NotificationChannel</code>. Adding another doesn't touch the service.</p>
+        </article>
+        <article class="highlight">
+          <span class="highlight-num">02</span>
+          <h2>Immutable messages</h2>
+          <p>Sealed case classes give each message type its own fields, plus generated IDs, timestamps, and safe structural equality.</p>
+        </article>
+        <article class="highlight">
+          <span class="highlight-num">03</span>
+          <h2>Failures you can see</h2>
+          <p>Custom exceptions and <code>Either[NotificationException, DeliveryReceipt]</code> make failed deliveries typed values, not surprises.</p>
+        </article>
+        <article class="highlight">
+          <span class="highlight-num">04</span>
+          <h2>Retries included</h2>
+          <p>Exponential back-off retries only transient provider failures. Validation errors fail fast. 17 MUnit tests cover the behavior.</p>
+        </article>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Outputs recorded from a real local run. No messages are sent by this page.</p>
+      <p>
+        <a href="https://github.com/apss2708/scala-project" target="_blank" rel="noreferrer">github.com/apss2708/scala-project</a>
+        <span class="footer-sep">·</span> Built by Ayush <span class="footer-sep">·</span> 2026
+      </p>
+    </footer>
+  </div>
+
+  <noscript>
+    <div class="noscript-banner">This interactive terminal needs JavaScript. You can still explore the source and README on <a href="https://github.com/apss2708/scala-project">GitHub</a>.</div>
+  </noscript>
+
+  <script src="script.js" defer></script>
+</body>
+</html>

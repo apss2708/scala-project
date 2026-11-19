@@ -11,6 +11,10 @@ object-oriented/functional design:
 - a service layer with routing, retry/back-off, and typed results,
 - a pluggable transport boundary and a full MUnit test suite.
 
+**Live interactive demo:** [apss2708.github.io/scala-project](https://apss2708.github.io/scala-project/) — type `scala-cli test .` or `scala-cli run .` in the browser terminal.
+
+[![SCALA Project terminal showcase](docs/preview.png)](https://apss2708.github.io/scala-project/)
+
 > GitHub does not allow spaces in repository names, so the requested name
 > "SCALA Project" is published as **`scala-project`**.
 
@@ -29,6 +33,7 @@ object-oriented/functional design:
 | Transport abstraction | `transport/Transport.scala` |
 | Console demo | `Main.scala` |
 | Tests (17) | `src/test/scala` |
+| Interactive terminal site | `docs/` (GitHub Pages) |
 
 ## Architecture
 
@@ -96,7 +101,7 @@ back-off. Exhausted retries are returned as `Left(DeliveryFailedException)`.
 
 ## Run the demo
 
-With **Scala CLI** (installed in this environment):
+With **Scala CLI**:
 
 ```bash
 scala-cli test .
@@ -135,6 +140,19 @@ Trait-based channels | case-class messages | typed delivery failures
 Demo complete.
 ```
 
+## Interactive terminal showcase
+
+The [`docs/`](docs/) folder contains a static terminal-style site, published on
+GitHub Pages at **<https://apss2708.github.io/scala-project/>**.
+
+It replays the real commands and output from this project. Supported commands
+include `help`, `scala-cli test .`, `scala-cli run .`, `sbt test`, `tree`,
+`cat README.md`, `architecture`, `roadmap`, and `github`. The prompt supports
+history with ↑/↓, tab completion, and `Ctrl+L` to clear.
+
+The page is a recording — it is not connected to a backend and does not send
+email, SMS, or push notifications.
+
 ## Project structure
 
 ```text
@@ -142,6 +160,12 @@ scala-project/
 ├── build.sbt
 ├── project.scala                 # Scala CLI configuration
 ├── project/build.properties
+├── docs/                         # interactive terminal site (GitHub Pages)
+│   ├── index.html
+│   ├── styles.css
+│   ├── script.js
+│   ├── preview.png
+│   └── favicon.svg
 ├── src/main/scala/com/example/notifications/
 │   ├── Main.scala
 │   ├── channel/

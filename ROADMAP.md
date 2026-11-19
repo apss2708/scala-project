@@ -16,6 +16,7 @@ priority order. Checked items are already implemented.
 - [x] Pluggable `Transport` boundary with a console implementation
 - [x] Deterministic test transport and 17 MUnit tests
 - [x] Demo application and project documentation
+- [x] Interactive terminal showcase on GitHub Pages (`docs/`)
 
 ## 1. Core product features
 
