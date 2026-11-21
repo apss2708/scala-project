@@ -1,7 +1,7 @@
 # Roadmap — everything that can be done next
 
 This is a menu of realistic extensions for the notification system, roughly in
-priority order. Checked items are already implemented.
+priority order. Checked items are already implemented
 
 ## Implemented
 
