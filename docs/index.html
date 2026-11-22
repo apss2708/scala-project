@@ -31,15 +31,6 @@
 
   <div class="page">
     <header class="site-header">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true"><span>&gt;_</span></div>
-        <div class="brand-copy">
-          <p class="eyebrow"><span class="eyebrow-dot"></span>SCALA PROJECT · CASE STUDY</p>
-          <h1>SCALA Project<span class="accent">.</span></h1>
-          <p class="lede">A type-safe notification system in <strong>Scala 3</strong> — trait-based channels, immutable case-class messages, custom exceptions, and retries with typed results.</p>
-        </div>
-      </div>
-
       <div class="header-actions">
         <button class="btn btn-primary" id="run-showcase" type="button">
           <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M4 2.4v11.2L13.2 8 4 2.4Z"/></svg>
@@ -129,32 +120,9 @@
         </div>
       </section>
 
-      <section class="highlights" aria-label="Project highlights">
-        <article class="highlight">
-          <span class="highlight-num">01</span>
-          <h2>One trait, three channels</h2>
-          <p><code>EmailChannel</code>, <code>SmsChannel</code>, and <code>PushChannel</code> implement <code>NotificationChannel</code>. Adding another doesn't touch the service.</p>
-        </article>
-        <article class="highlight">
-          <span class="highlight-num">02</span>
-          <h2>Immutable messages</h2>
-          <p>Sealed case classes give each message type its own fields, plus generated IDs, timestamps, and safe structural equality.</p>
-        </article>
-        <article class="highlight">
-          <span class="highlight-num">03</span>
-          <h2>Failures you can see</h2>
-          <p>Custom exceptions and <code>Either[NotificationException, DeliveryReceipt]</code> make failed deliveries typed values, not surprises.</p>
-        </article>
-        <article class="highlight">
-          <span class="highlight-num">04</span>
-          <h2>Retries included</h2>
-          <p>Exponential back-off retries only transient provider failures. Validation errors fail fast. 17 MUnit tests cover the behavior.</p>
-        </article>
-      </section>
     </main>
 
     <footer class="site-footer">
-      <p>Outputs recorded from a real local run on Nov 18, 2026. No messages are sent by this page.</p>
       <p>
         <a href="https://github.com/apss2708/scala-project" target="_blank" rel="noreferrer">github.com/apss2708/scala-project</a>
         <span class="footer-sep">·</span> Built by Ayush, Anirudh, Akshansh and Soumya <span class="footer-sep">·</span> 2026

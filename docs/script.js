@@ -210,6 +210,11 @@
     ['  <span class="cyan">ls</span>                   List top-level files', ''],
     ['  <span class="cyan">cat README.md</span>        Read the project overview', ''],
     ['  <span class="cyan">cat NotificationChannel.scala</span>  Read the core channel trait', ''],
+    ['  <span class="cyan">cat Main.scala</span>           Read the demo entry point', ''],
+    ['  <span class="cyan">cat NotificationService.scala</span> Read the service with retries', ''],
+    ['  <span class="cyan">cat EmailChannel.scala</span>   Read the email channel', ''],
+    ['  <span class="cyan">cat SmsChannel.scala</span>     Read the SMS channel', ''],
+    ['  <span class="cyan">cat PushChannel.scala</span>    Read the push channel', ''],
     ['  <span class="cyan">architecture</span>         Print the design overview', ''],
     ['  <span class="cyan">roadmap</span>              Show planned extensions', ''],
     ['  <span class="cyan">github</span>               Print the repository link', ''],
@@ -472,6 +477,294 @@ trait NotificationChannel:
     ];
   };
 
+  const catFile = (title, code) => [
+    [`<span class="blue">${title}</span>`, ''],
+    ['', 'blank'],
+    ...code.split('\n').map((line) => [`  ${escapeHtml(line)}`, '']),
+    ['', 'blank'],
+  ];
+
+  const mainScalaCode = `package com.example.notifications
+
+import com.example.notifications.model.*
+import com.example.notifications.service.{NotificationService, RetryPolicy}
+import com.example.notifications.transport.ConsoleTransport
+
+@main def notificationDemo(): Unit =
+  println("=== Scala Notification System ===")
+  println("Trait-based channels | case-class messages | typed delivery failures\\n")
+
+  val service = NotificationService.default(
+    transport = ConsoleTransport(),
+    retryPolicy = RetryPolicy(maxAttempts = 2, initialDelayMillis = 50L)
+  )
+
+  val messages: List[NotificationMessage] = List(
+    EmailMessage(
+      recipient = "ada@example.com",
+      subject = "Welcome aboard",
+      body = "Thanks for joining the notification demo.",
+      cc = List("grace@example.com")
+    ),
+    SmsMessage(
+      recipient = "+14155550100",
+      body = "Your verification code is 424242."
+    ),
+    PushMessage(
+      recipient = "device-token-abc123",
+      title = "New message",
+      body = "You have a new message waiting.",
+      data = Map("chatId" -> "42")
+    ),
+    EmailMessage(
+      recipient = "not-an-email",
+      subject = "Invalid recipient",
+      body = "Validation should reject this message."
+    )
+  )
+
+  val results = service.sendAll(messages)
+
+  messages.zip(results).foreach { case (message, result) =>
+    println(s"\\n-> \${message.channel.label.toUpperCase} to \${message.recipient}")
+    result match
+      case Right(receipt) =>
+        println(
+          s"   DELIVERED id=\${receipt.providerMessageId} attempt=\${receipt.attempt}"
+        )
+      case Left(error) =>
+        println(s"   FAILED \${error.getClass.getSimpleName}: \${error.getMessage}")
+  }
+
+  println("\\nDemo complete.")`;
+
+  const serviceScalaCode = `package com.example.notifications.service
+
+import com.example.notifications.channel.{
+  EmailChannel,
+  NotificationChannel,
+  PushChannel,
+  SmsChannel
+}
+import com.example.notifications.error.*
+import com.example.notifications.model.{Channel, DeliveryReceipt, NotificationMessage}
+import com.example.notifications.transport.Transport
+
+import scala.util.control.NonFatal
+
+/**
+ * Routes messages to the channel that declares the matching [[Channel]].
+ *
+ * Failures are returned as Left(NotificationException) rather than thrown,
+ * so callers cannot accidentally lose a failed delivery. Retryable failures are
+ * attempted again according to the configured RetryPolicy.
+ */
+final class NotificationService(
+    channels: List[NotificationChannel],
+    retryPolicy: RetryPolicy = RetryPolicy(),
+    sleeper: Sleeper = Sleeper.system
+):
+
+  private val channelsByType: Map[Channel, NotificationChannel] =
+    channels.map(channel => channel.channel -> channel).toMap
+
+  /** Delivers one message, returning a receipt or a typed failure. */
+  def send(message: NotificationMessage): Either[NotificationException, DeliveryReceipt] =
+    channelsByType.get(message.channel) match
+      case None =>
+        Left(NoChannelConfiguredException(message.channel))
+      case Some(channel) =>
+        attempt(channel, message, attemptNumber = 1)
+
+  /** Delivers each message independently; one failure does not stop the batch. */
+  def sendAll(
+      messages: List[NotificationMessage]
+  ): List[Either[NotificationException, DeliveryReceipt]] =
+    messages.map(send)
+
+  private def attempt(
+      channel: NotificationChannel,
+      message: NotificationMessage,
+      attemptNumber: Int
+  ): Either[NotificationException, DeliveryReceipt] =
+    try
+      Right(channel.send(message).copy(attempt = attemptNumber))
+    catch
+      case error: NotificationException
+          if error.retryable && attemptNumber < retryPolicy.maxAttempts =>
+        sleeper.sleep(retryPolicy.delayFor(attemptNumber))
+        attempt(channel, message, attemptNumber + 1)
+      case error: NotificationException =>
+        Left(error)
+      case NonFatal(error) =>
+        Left(
+          DeliveryFailedException(
+            channel = message.channel,
+            recipient = message.recipient,
+            reason =
+              Option(error.getMessage).filter(_.nonEmpty).getOrElse(error.getClass.getSimpleName),
+            cause = error
+          )
+        )
+
+object NotificationService:
+
+  /** Builds a service with email, SMS, and push channels over one transport. */
+  def default(
+      transport: Transport,
+      retryPolicy: RetryPolicy = RetryPolicy()
+  ): NotificationService =
+    NotificationService(
+      channels = List(
+        EmailChannel(transport),
+        SmsChannel(transport),
+        PushChannel(transport)
+      ),
+      retryPolicy = retryPolicy
+    )`;
+
+  const emailChannelCode = `package com.example.notifications.channel
+
+import com.example.notifications.error.*
+import com.example.notifications.model.*
+import com.example.notifications.transport.{Envelope, Transport}
+
+import java.util.regex.Pattern
+
+/** Delivers email messages after validating the address and content. */
+final class EmailChannel(transport: Transport) extends BaseNotificationChannel(transport):
+
+  override val channel: Channel = Channel.Email
+
+  private val emailPattern =
+    Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z]{2,}\$")
+
+  override protected def validate(message: NotificationMessage): Unit =
+    message match
+      case email: EmailMessage =>
+        if !emailPattern.matcher(email.recipient).matches() then
+          throw InvalidRecipientException(
+            Channel.Email,
+            email.recipient,
+            "expected a valid email address"
+          )
+        if email.subject.trim.isEmpty then
+          throw InvalidMessageException(Channel.Email, "subject must not be empty")
+        if email.body.trim.isEmpty then
+          throw InvalidMessageException(Channel.Email, "body must not be empty")
+      case other =>
+        throw UnsupportedMessageException(Channel.Email, other.channel)
+
+  override protected def toEnvelope(message: NotificationMessage): Envelope =
+    message match
+      case email: EmailMessage =>
+        val metadata = Map(
+          "priority" -> email.priority.toString,
+          "cc" -> email.cc.mkString(","),
+          "attachments" -> email.attachments.mkString(",")
+        ).filter(_._2.nonEmpty)
+
+        Envelope(
+          channel = Channel.Email,
+          recipient = email.recipient,
+          subject = Some(email.subject),
+          body = email.body,
+          metadata = metadata
+        )
+      case other =>
+        throw UnsupportedMessageException(Channel.Email, other.channel)`;
+
+  const smsChannelCode = `package com.example.notifications.channel
+
+import com.example.notifications.error.*
+import com.example.notifications.model.*
+import com.example.notifications.transport.{Envelope, Transport}
+
+import java.util.regex.Pattern
+
+/** Delivers SMS messages to E.164 phone numbers. */
+final class SmsChannel(transport: Transport) extends BaseNotificationChannel(transport):
+
+  override val channel: Channel = Channel.Sms
+
+  private val phonePattern = Pattern.compile("^\\\\+[1-9]\\\\d{6,14}\$")
+
+  override protected def validate(message: NotificationMessage): Unit =
+    message match
+      case sms: SmsMessage =>
+        if !phonePattern.matcher(sms.recipient).matches() then
+          throw InvalidRecipientException(
+            Channel.Sms,
+            sms.recipient,
+            "expected E.164 format, for example +14155550100"
+          )
+        if sms.body.trim.isEmpty then
+          throw InvalidMessageException(Channel.Sms, "body must not be empty")
+        if sms.senderId.trim.isEmpty then
+          throw InvalidMessageException(Channel.Sms, "senderId must not be empty")
+      case other =>
+        throw UnsupportedMessageException(Channel.Sms, other.channel)
+
+  override protected def toEnvelope(message: NotificationMessage): Envelope =
+    message match
+      case sms: SmsMessage =>
+        Envelope(
+          channel = Channel.Sms,
+          recipient = sms.recipient,
+          subject = None,
+          body = sms.body,
+          metadata = Map(
+            "senderId" -> sms.senderId,
+            "priority" -> sms.priority.toString
+          )
+        )
+      case other =>
+        throw UnsupportedMessageException(Channel.Sms, other.channel)`;
+
+  const pushChannelCode = `package com.example.notifications.channel
+
+import com.example.notifications.error.*
+import com.example.notifications.model.*
+import com.example.notifications.transport.{Envelope, Transport}
+
+import java.util.regex.Pattern
+
+/** Delivers push notifications using an opaque device token. */
+final class PushChannel(transport: Transport) extends BaseNotificationChannel(transport):
+
+  override val channel: Channel = Channel.Push
+
+  private val tokenPattern = Pattern.compile("^[A-Za-z0-9:_\\-]{8,}\$")
+
+  override protected def validate(message: NotificationMessage): Unit =
+    message match
+      case push: PushMessage =>
+        if !tokenPattern.matcher(push.recipient).matches() then
+          throw InvalidRecipientException(
+            Channel.Push,
+            push.recipient,
+            "expected a device token of at least 8 characters"
+          )
+        if push.title.trim.isEmpty then
+          throw InvalidMessageException(Channel.Push, "title must not be empty")
+        if push.body.trim.isEmpty then
+          throw InvalidMessageException(Channel.Push, "body must not be empty")
+      case other =>
+        throw UnsupportedMessageException(Channel.Push, other.channel)
+
+  override protected def toEnvelope(message: NotificationMessage): Envelope =
+    message match
+      case push: PushMessage =>
+        Envelope(
+          channel = Channel.Push,
+          recipient = push.recipient,
+          subject = Some(push.title),
+          body = push.body,
+          metadata = push.data + ("priority" -> push.priority.toString)
+        )
+      case other =>
+        throw UnsupportedMessageException(Channel.Push, other.channel)`;
+
   const roadmapLines = () => [
     ['<span class="bold">ROADMAP · WHAT CAN BE BUILT NEXT</span>', ''],
     ['<span class="dim">────────────────────────────────────────</span>', ''],
@@ -568,6 +861,16 @@ trait NotificationChannel:
         return readmeLines();
       case 'cat NotificationChannel.scala':
         return notificationChannelLines();
+      case 'cat Main.scala':
+        return catFile('Main.scala', mainScalaCode);
+      case 'cat NotificationService.scala':
+        return catFile('NotificationService.scala', serviceScalaCode);
+      case 'cat EmailChannel.scala':
+        return catFile('EmailChannel.scala', emailChannelCode);
+      case 'cat SmsChannel.scala':
+        return catFile('SmsChannel.scala', smsChannelCode);
+      case 'cat PushChannel.scala':
+        return catFile('PushChannel.scala', pushChannelCode);
       case 'cat ROADMAP.md':
       case 'roadmap':
         return roadmapLines();
@@ -787,6 +1090,11 @@ trait NotificationChannel:
     'ls',
     'cat README.md',
     'cat NotificationChannel.scala',
+    'cat Main.scala',
+    'cat NotificationService.scala',
+    'cat EmailChannel.scala',
+    'cat SmsChannel.scala',
+    'cat PushChannel.scala',
     'cat ROADMAP.md',
     'architecture',
     'roadmap',
