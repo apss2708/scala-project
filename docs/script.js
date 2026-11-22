@@ -7,6 +7,7 @@
   const inputEl = document.getElementById('command-input');
   const showcaseBtn = document.getElementById('run-showcase');
   const clearBtn = document.getElementById('clear-terminal');
+  const copyBtn = document.getElementById('copy-output');
   const showcaseLabel = showcaseBtn.querySelector('span');
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -23,8 +24,38 @@
     busy: false,
   };
 
-  const wait = (ms) =>
-    new Promise((resolve) => setTimeout(resolve, reducedMotion.matches ? 0 : ms));
+  // ---------------------------------------------------------------------------
+  // Skip mechanism — cancels in-progress showcase waits/animation
+  // ---------------------------------------------------------------------------
+
+  let skipRequested = false;
+  let currentSkip = null;
+
+  const createSkip = () => {
+    let resolve;
+    const promise = new Promise((r) => {
+      resolve = r;
+    });
+    return { promise, resolve };
+  };
+
+  const requestSkip = () => {
+    skipRequested = true;
+    if (currentSkip) {
+      currentSkip.resolve();
+      currentSkip = null;
+    }
+  };
+
+  const wait = async (ms) => {
+    if (reducedMotion.matches || skipRequested) return;
+    if (!currentSkip) currentSkip = createSkip();
+    await Promise.race([
+      new Promise((resolve) => setTimeout(resolve, ms)),
+      currentSkip.promise,
+    ]);
+    currentSkip = null;
+  };
 
   const escapeHtml = (value) =>
     value.replace(
@@ -178,6 +209,7 @@
     ['  <span class="cyan">tree</span>                 Show the project structure', ''],
     ['  <span class="cyan">ls</span>                   List top-level files', ''],
     ['  <span class="cyan">cat README.md</span>        Read the project overview', ''],
+    ['  <span class="cyan">cat NotificationChannel.scala</span>  Read the core channel trait', ''],
     ['  <span class="cyan">architecture</span>         Print the design overview', ''],
     ['  <span class="cyan">roadmap</span>              Show planned extensions', ''],
     ['  <span class="cyan">github</span>               Print the repository link', ''],
@@ -408,6 +440,38 @@
     ['', 'blank'],
   ];
 
+  const notificationChannelLines = () => {
+    const code = `package com.example.notifications.channel
+
+import com.example.notifications.model.{Channel, DeliveryReceipt, NotificationMessage}
+
+/**
+ * Abstraction implemented by every delivery mechanism. Adding a new channel
+ * means implementing this trait and registering the instance with the service.
+ */
+trait NotificationChannel:
+  def channel: Channel
+
+  /** True when this channel can handle the message's channel type. */
+  def supports(message: NotificationMessage): Boolean =
+    message.channel == channel
+
+  /**
+   * Delivers a message.
+   *
+   * @throws com.example.notifications.error.NotificationException
+   *   when validation fails or the provider cannot deliver the message
+   */
+  def send(message: NotificationMessage): DeliveryReceipt`;
+
+    return [
+      ['<span class="blue">NotificationChannel.scala</span>', ''],
+      ['', 'blank'],
+      ...code.split('\n').map((line) => [`  ${escapeHtml(line)}`, '']),
+      ['', 'blank'],
+    ];
+  };
+
   const roadmapLines = () => [
     ['<span class="bold">ROADMAP · WHAT CAN BE BUILT NEXT</span>', ''],
     ['<span class="dim">────────────────────────────────────────</span>', ''],
@@ -502,6 +566,8 @@
         return lsLines();
       case 'cat README.md':
         return readmeLines();
+      case 'cat NotificationChannel.scala':
+        return notificationChannelLines();
       case 'cat ROADMAP.md':
       case 'roadmap':
         return roadmapLines();
@@ -557,6 +623,11 @@
       commandSpan.textContent += character;
       scrollBottom();
       await wait(26 + Math.random() * 16);
+      if (skipRequested) {
+        commandSpan.textContent = command;
+        scrollBottom();
+        break;
+      }
     }
   };
 
@@ -602,6 +673,18 @@
   const runShowcase = async () => {
     if (state.busy) return;
 
+    skipRequested = false;
+    currentSkip = null;
+
+    const onSkip = (event) => {
+      // Ignore modifier-only chords
+      if (event.type === 'keydown' && (event.ctrlKey || event.metaKey || event.altKey)) return;
+      requestSkip();
+    };
+
+    window.addEventListener('keydown', onSkip, { passive: true });
+    window.addEventListener('click', onSkip, { passive: true });
+
     setBusy(true);
     showcaseLabel.textContent = 'Running…';
 
@@ -629,6 +712,8 @@
       );
       scrollBottom();
     } finally {
+      window.removeEventListener('keydown', onSkip);
+      window.removeEventListener('click', onSkip);
       showcaseLabel.textContent = 'Run showcase';
       setBusy(false);
     }
@@ -639,6 +724,41 @@
     clearOutput();
     resetInput();
     focusInput(true);
+  };
+
+  const copyOutput = async () => {
+    const text = outputEl.textContent;
+    if (!text.trim()) return;
+
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } catch (fallbackErr) {
+        console.error('Failed to copy output:', fallbackErr);
+      }
+      document.body.removeChild(textarea);
+    }
+
+    // Visual feedback: flash the copy icon
+    const originalHtml = copyBtn.innerHTML;
+    copyBtn.innerHTML =
+      '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="var(--green)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+    copyBtn.setAttribute('aria-label', 'Copied!');
+    copyBtn.title = 'Copied!';
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    copyBtn.innerHTML = originalHtml;
+    copyBtn.setAttribute('aria-label', 'Copy terminal output');
+    copyBtn.title = 'Copy terminal output';
   };
 
   const navigateHistory = (direction) => {
@@ -666,6 +786,7 @@
     'tree',
     'ls',
     'cat README.md',
+    'cat NotificationChannel.scala',
     'cat ROADMAP.md',
     'architecture',
     'roadmap',
@@ -708,7 +829,7 @@
       ['<span class="boot-rule"></span>', ''],
       ['', 'blank'],
       [
-        '<span class="note">Interactive showcase — outputs recorded from a real local run.</span>',
+        '<span class="note">Interactive showcase — outputs recorded from a real local run on Nov 18, 2026.</span>',
         '',
       ],
       [
@@ -806,6 +927,7 @@
   });
 
   clearBtn.addEventListener('click', clearTerminal);
+  copyBtn.addEventListener('click', copyOutput);
 
   boot();
 
